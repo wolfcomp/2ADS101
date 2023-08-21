@@ -2,4 +2,4 @@
 
 void fibonacci_main();
 
-void fibonacci(int count, int limit);
+void fibonacci(unsigned long count, unsigned long limit);

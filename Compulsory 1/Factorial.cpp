@@ -1,24 +1,23 @@
 #include <iostream>
 #include "Factorial.h"
 
-int factorial(const int n)
+#include <string>
+
+long double factorial(const unsigned long n)
 {
-	if(n < 0)
-	{
-		throw std::invalid_argument("n must be greater than or equal to 0");
-	}
 	if (n == 0)
 	{
 		return 1;
 	}
-	return n * factorial(n - 1);
+	const long double ret = factorial(n - 1);
+	return n * ret;
 }
 
 void factorial_main()
 {
-	int n;
-	int count;
+	std::string input;
 	std::cout << "Enter a number: ";
-	std::cin >> n;
-	std::cout << "Factorial of " << n << " is " << factorial(n) << std::endl;
+	std::cin >> input;
+	const unsigned long n = std::stoul(input);
+	std::cout << "Factorial of " << input << " is " << factorial(n) << std::endl;
 }

@@ -2,4 +2,4 @@
 
 void factorial_main();
 
-int factorial(int n);
+long double factorial(unsigned long n);

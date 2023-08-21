@@ -1,16 +1,18 @@
 #include "Fibonacci.h"
 
 #include <iostream>
+#include <string>
 
-static int n1 = 0, n2 = 1;
+static long double n1 = 0, n2 = 1, n3;
 
 void fibonacci_main()
 {
-	int n;
+	std::string input;
 	n1 = 0;
 	n2 = 1;
 	std::cout << "Enter a how many positions to find Fibonacci sequence for: ";
-	std::cin >> n;
+	std::cin >> input;
+	const unsigned long n = std::stoul(input);
 	if (n < 1)
 	{
 		throw std::invalid_argument("n must be greater than or equal to 1");
@@ -23,11 +25,11 @@ void fibonacci_main()
 		fibonacci(0, n - 2);
 }
 
-void fibonacci(int count, int limit)
+void fibonacci(unsigned long count, unsigned long limit)
 {
 	if (count < limit)
 	{
-		const int n3 = n1 + n2;
+		n3 = n1 + n2;
 		n1 = n2;
 		n2 = n3;
 		std::cout << n3 << " ";

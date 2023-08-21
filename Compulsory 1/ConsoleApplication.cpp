@@ -10,7 +10,7 @@
 
 int main()
 {
-	char s;
+	char c;
 
 	while (true)
 	{
@@ -20,9 +20,9 @@ int main()
 			std::cout << "1. Factorial" << std::endl;
 			std::cout << "2. Fibonacci" << std::endl;
 			std::cout << "q. Quit" << std::endl;
-			std::cin >> s;
+			std::cin >> c;
 			std::cout << "\x1B[2J\x1B[H";
-			switch (s)
+			switch (c)
 			{
 			case '1':
 				factorial_main();
@@ -40,10 +40,16 @@ int main()
 		catch (std::invalid_argument& e)
 		{
 			std::cout << e.what() << std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+
+			return 1;
 		}
 		catch (...)
 		{
 			std::cout << "An unknown error occurred" << std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+
+			return 1;
 		}
 	}
 }
