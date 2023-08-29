@@ -52,7 +52,8 @@ enum SortType
 	SelectionSort,
 	MergeSort,
 	QuickSort,
-	CocktailSort
+	CocktailSort,
+	HeapSort
 };
 
 std::ostream& operator<<(std::ostream& out, const SortType value) {
@@ -65,6 +66,7 @@ std::ostream& operator<<(std::ostream& out, const SortType value) {
 				PROCESS_VAL(MergeSort)
 				PROCESS_VAL(QuickSort)
 				PROCESS_VAL(CocktailSort)
+				PROCESS_VAL(HeapSort)
 		}
 #undef PROCESS_VAL
 		return "";
@@ -85,7 +87,7 @@ void print(const vector<int> arr, const int altColLen = -1, int start = 0, int l
 	bool altCol = false;
 
 	if (len == -1)
-		len = arr.size() - 1;
+		len = arr.size();
 
 	for (int i = start; i < len; i++)
 	{
@@ -110,6 +112,15 @@ void swap(vector<int>& arr, int i, int j)
 	arr[j] = temp;
 }
 
+void swap(int& i, int& j)
+{
+	if (debug)
+		cout << "Swap: " << i << " <-> " << j << endl;
+	const int temp = i;
+	i = j;
+	j = temp;
+}
+
 vector<int> bubble_sort(vector<int> arr)
 {
 	bool swapped = true;
@@ -130,21 +141,16 @@ vector<int> bubble_sort(vector<int> arr)
 
 vector<int> insertion_sort(vector<int> arr)
 {
-	for (int i = 1; i < arr.size(); i++)
+	int i = 1;
+	while (i < arr.size())
 	{
-		const int key = arr[i];
-		if (debug)
-			cout << "Sort Key: " << key << endl;
-		int j = i - 1;
-		while (j >= 0 && arr[j] > key)
+		int j = i;
+		while (j > 0 && arr[j - 1] > arr[j])
 		{
-			if (debug)
-				cout << "Sort: " << arr[j] << " > " << key << endl;
-			arr[j + 1] = arr[j--];
+			swap(arr, j, j - 1);
+			j--;
 		}
-		if (debug)
-			cout << "Sort: " << arr[j + 1] << " <= " << key << endl;
-		arr[j + 1] = key;
+		i++;
 	}
 	return arr;
 }
@@ -238,38 +244,33 @@ vector<int> merge_sort(vector<int> arr)
 	return merge_divide_combine(merge_divide(arr));
 }
 
-int partition(vector<int> arr, int leftIndex, int rightIndex)
+int partition(vector<int>& arr, int lo, int hi)
 {
-	const int pivot = arr[(rightIndex - leftIndex) / 2 + leftIndex];
-	int i = leftIndex, j = rightIndex;
+	const int pivot = arr[(hi - lo) / 2 + lo];
+	int i = lo - 1, j = hi + 1;
 	while (true)
 	{
-		while (arr[i] < pivot)
-			i++;
-		while (arr[j] > pivot)
-			j--;
-		if (i >= j)
-			return j;
+		do i++;	while (arr[i] < pivot);
+		do j--;	while (arr[j] > pivot);
+		if (i >= j) return j;
 		swap(arr, i, j);
-		i++;
-		j--;
 	}
 }
 
-vector<int> quick_sort(vector<int> arr, int leftIndex, int rightIndex)
+vector<int> quick_sort(vector<int> arr, int lo, int hi)
 {
 	if (arr.size() <= 1)
 		return arr;
 	if (debug)
 	{
-		cout << "leftIndex: " << leftIndex << endl;
-		cout << "rightIndex: " << rightIndex << endl;
+		cout << "lo: " << lo << endl;
+		cout << "hi: " << hi << endl;
 	}
-	if (leftIndex >= 0 && rightIndex >= 0 && leftIndex < rightIndex)
+	if (lo >= 0 && hi >= 0 && lo < hi)
 	{
-		const int pivotIndex = partition(arr, leftIndex, rightIndex);
-		quick_sort(arr, leftIndex, pivotIndex);
-		quick_sort(arr, pivotIndex + 1, rightIndex);
+		int p = partition(arr, lo, hi);
+		arr = quick_sort(arr, lo, p);
+		arr = quick_sort(arr, p + 1, hi);
 	}
 	return arr;
 }
@@ -299,6 +300,58 @@ vector<int> cocktail_sort(vector<int> arr)
 	return arr;
 }
 
+int leaf_search(vector<int> arr, int i, int rightIndex)
+{
+	int j = i;
+	while (2 * j + 2 <= rightIndex)
+	{
+		if (arr[2 * j + 2] > arr[2 * j + 1])
+			j = 2 * j + 2;
+		else
+			j = 2 * j + 1;
+	}
+	if (2 * j + 1 <= rightIndex)
+		j = 2 * j + 1;
+	return j;
+}
+
+void shift_down(vector<int>& arr, int i, int rightIndex)
+{
+	int j = leaf_search(arr, i, rightIndex);
+	while (arr[i] > arr[j])
+		j = (j - 1) / 2;
+	int temp = arr[j];
+	arr[j] = arr[i];
+	while (j > i)
+	{
+		int p = (j - 1) / 2;
+		swap(temp, arr[p]);
+		j = p;
+	}
+}
+
+void heapify(vector<int>& arr, int rightIndex)
+{
+	int start = (rightIndex - 2) / 2;
+	while (start >= 0)
+	{
+		shift_down(arr, start, rightIndex - 1);
+		start--;
+	}
+}
+
+vector<int> heap_sort(vector<int> arr)
+{
+	int count = arr.size();
+	heapify(arr, count--);
+	while (count > 0)
+	{
+		swap(arr, 0, count--);
+		shift_down(arr, 0, count);
+	}
+	return arr;
+}
+
 vector<int> sort(const SortType type, vector<int> arr)
 {
 	switch (type)
@@ -315,6 +368,8 @@ vector<int> sort(const SortType type, vector<int> arr)
 		return quick_sort(arr, 0, arr.size() - 1);
 	case CocktailSort:
 		return cocktail_sort(arr);
+	case HeapSort:
+		return heap_sort(arr);
 	default:
 		break;
 	}
@@ -327,6 +382,7 @@ vector<double> time(const SortType type, int size, int times = 10)
 	vector<double> result = vector<double>(3);
 	result[0] = -1;
 	vector<int> arr = vector<int>();
+	vector<int> sorted;
 	for (int i = 0; i < size; ++i)
 	{
 		arr.push_back(i + 1);
@@ -336,7 +392,7 @@ vector<double> time(const SortType type, int size, int times = 10)
 	{
 		cout << "Running " << type << " of size " << size << " , " << i + 1 << " out of " << times << " times" << endl;
 		auto startTime = high_resolution_clock::now();
-		sort(type, arr);
+		sorted = sort(type, arr);
 		const double duration = static_cast<double>(duration_cast<microseconds>(high_resolution_clock::now() - startTime).count());
 		result[1] += duration;
 		if (result[0] < 0 || result[0] > duration)
@@ -346,6 +402,7 @@ vector<double> time(const SortType type, int size, int times = 10)
 		if (i != times - 1)
 			shuffle(begin(arr), end(arr), rnd);
 	}
+	print(sorted);
 	result[1] /= times;
 	return result;
 }
@@ -431,6 +488,10 @@ int main()
 	auto cocktail1000 = time(CocktailSort, 1000);
 	auto cocktail10000 = time(CocktailSort, 10000);
 
+	auto heap100 = time(HeapSort, 100);
+	auto heap1000 = time(HeapSort, 1000);
+	auto heap10000 = time(HeapSort, 10000);
+
 	cout << endl;
 	cout << endl;
 	cout << endl;
@@ -441,6 +502,7 @@ int main()
 	formatTime("Merge Sort 10000", merge10000, true);
 	formatTime("Quick Sort 10000", quick10000, true);
 	formatTime("Cocktail Sort 10000", cocktail10000, true);
+	formatTime("Heap Sort 10000", heap10000, true);
 
 	printElement("Type", nameLen);
 	cout << " | ";
@@ -474,6 +536,10 @@ int main()
 	formatTime("Cocktail Sort 100", cocktail100);
 	formatTime("Cocktail Sort 1000", cocktail1000);
 	formatTime("Cocktail Sort 10000", cocktail10000);
+
+	formatTime("Heap Sort 100", heap100);
+	formatTime("Heap Sort 1000", heap1000);
+	formatTime("Heap Sort 10000", heap10000);
 
 	return 0;
 }
