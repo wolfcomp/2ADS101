@@ -7,14 +7,12 @@
 #include <Windows.h>
 #include <cstdio>
 #include <iomanip>
-#include <map>
 #include <string>
-#include <string_view>
 
 using namespace std;
 using namespace std::chrono;
 
-bool debug = true;
+bool debug = false;
 char separator = ' ';
 
 template<typename T> void printElement(T t, const int& width, bool rightAlign = false)
