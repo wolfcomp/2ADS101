@@ -6,11 +6,24 @@
 #include <vector>
 #include <Windows.h>
 #include <cstdio>
+#include <iomanip>
+#include <map>
+#include <string>
+#include <string_view>
 
 using namespace std;
 using namespace std::chrono;
 
-bool debug = false;
+bool debug = true;
+char separator = ' ';
+
+template<typename T> void printElement(T t, const int& width, bool rightAlign = false)
+{
+	if (rightAlign)
+		cout << right << setw(width) << setfill(separator) << t;
+	else
+		cout << left << setw(width) << setfill(separator) << t;
+}
 
 namespace Color {
 	enum Code {
@@ -41,8 +54,24 @@ enum SortType
 	SelectionSort,
 	MergeSort,
 	QuickSort,
-	HeapSort
+	CocktailSort
 };
+
+std::ostream& operator<<(std::ostream& out, const SortType value) {
+	return out << [value] {
+#define PROCESS_VAL(p) case(p): return #p;
+		switch (value) {
+			PROCESS_VAL(BubbleSort)
+				PROCESS_VAL(InsertionSort)
+				PROCESS_VAL(SelectionSort)
+				PROCESS_VAL(MergeSort)
+				PROCESS_VAL(QuickSort)
+				PROCESS_VAL(CocktailSort)
+		}
+#undef PROCESS_VAL
+		return "";
+	}();
+}
 
 void print(const vector<int> arr, const int altColLen = -1, int start = 0, int len = -1)
 {
@@ -74,6 +103,15 @@ void print(const vector<int> arr, const int altColLen = -1, int start = 0, int l
 	cout << endl;
 }
 
+void swap(vector<int>& arr, int i, int j)
+{
+	if (debug)
+		cout << "Swap: " << arr[i] << " <-> " << arr[j] << endl;
+	const int temp = arr[i];
+	arr[i] = arr[j];
+	arr[j] = temp;
+}
+
 vector<int> bubble_sort(vector<int> arr)
 {
 	bool swapped = true;
@@ -84,9 +122,7 @@ vector<int> bubble_sort(vector<int> arr)
 		{
 			if (arr[i] > arr[i + 1])
 			{
-				const int temp = arr[i];
-				arr[i] = arr[i + 1];
-				arr[i + 1] = temp;
+				swap(arr, i, i + 1);
 				swapped = true;
 			}
 		}
@@ -129,9 +165,7 @@ vector<int> selection_sort(vector<int> arr)
 			cout << "Min: " << min << " , arr: " << arr[min] << endl;
 		if (min != i)
 		{
-			const int temp = arr[i];
-			arr[i] = arr[min];
-			arr[min] = temp;
+			swap(arr, i, min);
 		}
 	}
 	return arr;
@@ -206,51 +240,70 @@ vector<int> merge_sort(vector<int> arr)
 	return merge_divide_combine(merge_divide(arr));
 }
 
-vector<int> quick_sort(vector<int> arr, int leftIndex, int rightIndex)
+int partition(vector<int> arr, int leftIndex, int rightIndex)
 {
-	if (arr.size() <= 1)
-		return arr;
+	const int pivot = arr[(rightIndex - leftIndex) / 2 + leftIndex];
 	int i = leftIndex, j = rightIndex;
-	const int pivot = arr[leftIndex];
-	if (debug)
-	{
-		cout << "pivot: " << pivot << endl;
-		cout << "leftIndex: " << leftIndex << endl;
-		cout << "rightIndex: " << rightIndex << endl;
-		cout << "before: ";
-		print(arr, (rightIndex - leftIndex) / 2, leftIndex, rightIndex);
-	}
-	while (i <= j)
+	while (true)
 	{
 		while (arr[i] < pivot)
 			i++;
 		while (arr[j] > pivot)
 			j--;
-		if (i <= j)
-		{
-			const int temp = arr[i];
-			arr[i] = arr[j];
-			arr[j] = temp;
-			i++;
-			j--;
-		}
+		if (i >= j)
+			return j;
+		swap(arr, i, j);
+		i++;
+		j--;
 	}
+}
+
+vector<int> quick_sort(vector<int> arr, int leftIndex, int rightIndex)
+{
+	if (arr.size() <= 1)
+		return arr;
 	if (debug)
 	{
-		cout << "after: ";
-		print(arr, (rightIndex - leftIndex) / 2, leftIndex, rightIndex);
+		cout << "leftIndex: " << leftIndex << endl;
+		cout << "rightIndex: " << rightIndex << endl;
 	}
-
-	if (leftIndex < j)
-		quick_sort(arr, leftIndex, j);
-	if (i < rightIndex)
-		quick_sort(arr, i, rightIndex);
+	if (leftIndex >= 0 && rightIndex >= 0 && leftIndex < rightIndex)
+	{
+		const int pivotIndex = partition(arr, leftIndex, rightIndex);
+		quick_sort(arr, leftIndex, pivotIndex);
+		quick_sort(arr, pivotIndex + 1, rightIndex);
+	}
 	return arr;
 }
 
-vector<int> sort(const SortType sort, vector<int> arr)
+vector<int> cocktail_sort(vector<int> arr)
 {
-	switch (sort)
+	int lower = 0, upper = arr.size() - 1;
+	while (lower <= upper)
+	{
+		for (int i = lower; i < arr.size() - 1; ++i)
+		{
+			if (arr[i] > arr[i + 1])
+			{
+				swap(arr, i, i + 1);
+			}
+		}
+		for (int i = upper; i > lower; --i)
+		{
+			if (arr[i - 1] > arr[i])
+			{
+				swap(arr, i - 1, i);
+			}
+		}
+		lower++;
+		upper--;
+	}
+	return arr;
+}
+
+vector<int> sort(const SortType type, vector<int> arr)
+{
+	switch (type)
 	{
 	case BubbleSort:
 		return bubble_sort(arr);
@@ -262,10 +315,91 @@ vector<int> sort(const SortType sort, vector<int> arr)
 		return merge_sort(arr);
 	case QuickSort:
 		return quick_sort(arr, 0, arr.size() - 1);
-		//case HeapSort:
-			//return heap_sort(arr);
+	case CocktailSort:
+		return cocktail_sort(arr);
 	default:
 		break;
+	}
+}
+
+auto rnd = default_random_engine{ random_device{}() };
+
+vector<double> time(const SortType type, int size, int times = 10)
+{
+	vector<double> result = vector<double>(3);
+	result[0] = -1;
+	vector<int> arr = vector<int>();
+	for (int i = 0; i < size; ++i)
+	{
+		arr.push_back(i + 1);
+	}
+	shuffle(begin(arr), end(arr), rnd);
+	for (int i = 0; i < times; i++)
+	{
+		cout << "Running " << type << " of size " << size << " , " << i + 1 << " out of " << times << " times" << endl;
+		auto startTime = high_resolution_clock::now();
+		sort(type, arr);
+		const double duration = static_cast<double>(duration_cast<microseconds>(high_resolution_clock::now() - startTime).count());
+		result[1] += duration;
+		if (result[0] < 0 || result[0] > duration)
+			result[0] = duration;
+		if (result[2] < duration)
+			result[2] = duration;
+		if (i != times - 1)
+			shuffle(begin(arr), end(arr), rnd);
+	}
+	result[1] /= times;
+	return result;
+}
+
+int nameLen = 0;
+int minLen = 0;
+int maxLen = 0;
+int avgLen = 0;
+
+string format_number(long long num)
+{
+	string result = to_string(num);
+	int i = result.length() - 3;
+	while (i > 0)
+	{
+		result.insert(i, ",");
+		i -= 3;
+	}
+	return result;
+}
+
+void formatTime(string name, vector<double> time, bool dry = false)
+{
+	const auto avg = time[1];
+	const auto avgDec = avg - static_cast<long long>(avg);
+	auto avgDecStr = to_string(avgDec);
+	avgDecStr = avgDecStr.substr(avgDecStr.find('.') + 1, 3);
+	avgDecStr = avgDecStr.substr(0, avgDecStr.find_last_not_of('0') + 1);
+
+	auto minStr = format_number(static_cast<long long>(time[0])) + u8"µs";
+	auto maxStr = format_number(static_cast<long long>(time[2])) + u8"µs";
+	auto avgStr = format_number(static_cast<long long>(avg));
+	if (!avgDecStr.empty())
+		avgStr += "." + avgDecStr;
+	avgStr += u8"µs";
+	if (!dry)
+	{
+		printElement(name, nameLen);
+		cout << " | ";
+		printElement(minStr, minLen, true);
+		cout << " | ";
+		printElement(maxStr, maxLen, true);
+		cout << " | ";
+		printElement(avgStr, avgLen, true);
+		cout << endl;
+	}
+	else
+	{
+		minLen = max(minLen, static_cast<int>(minStr.length()));
+		maxLen = max(maxLen, static_cast<int>(maxStr.length()));
+		avgLen = max(avgLen, static_cast<int>(avgStr.length()));
+		nameLen = max(nameLen, static_cast<int>(name.length()));
 	}
 }
 
@@ -273,44 +407,75 @@ int main()
 {
 	SetConsoleOutputCP(CP_UTF8);
 	setvbuf(stdout, nullptr, _IOFBF, 1000);
+	cout.imbue(locale(""));
 
-	auto startArr = vector<int>();
-	for (int i = 0; i < 10000; ++i)
-	{
-		startArr.push_back(i + 1);
-	}
+	auto bubble100 = time(BubbleSort, 100);
+	auto bubble1000 = time(BubbleSort, 1000);
+	auto bubble10000 = time(BubbleSort, 10000);
 
-	cout << "Speed over array of " << startArr.size() << " elements" << endl;
+	auto insertion100 = time(InsertionSort, 100);
+	auto insertion1000 = time(InsertionSort, 1000);
+	auto insertion10000 = time(InsertionSort, 10000);
 
-	cout << "Shuffling then running Bubble sort" << endl;
-	shuffle(begin(startArr), end(startArr), default_random_engine{ random_device{}() });
-	auto startTime = high_resolution_clock::now();
-	sort(BubbleSort, startArr);
-	const auto bubbleDuration = duration_cast<milliseconds>(high_resolution_clock::now() - startTime);
-	cout << "Shuffling then running Insertion sort" << endl;
-	shuffle(begin(startArr), end(startArr), default_random_engine{ random_device{}() });
-	startTime = high_resolution_clock::now();
-	sort(InsertionSort, startArr);
-	const auto insertDuration = duration_cast<microseconds>(high_resolution_clock::now() - startTime);
-	cout << "Shuffling then running Selection sort" << endl;
-	shuffle(begin(startArr), end(startArr), default_random_engine{ random_device{}() });
-	startTime = high_resolution_clock::now();
-	sort(SelectionSort, startArr);
-	const auto selectionDuration = duration_cast<milliseconds>(high_resolution_clock::now() - startTime);
-	cout << "Shuffling then running Merge sort" << endl;
-	shuffle(begin(startArr), end(startArr), default_random_engine{ random_device{}() });
-	startTime = high_resolution_clock::now();
-	sort(MergeSort, startArr);
-	const auto mergeDuration = duration_cast<milliseconds>(high_resolution_clock::now() - startTime);
-	cout << "Shuffling then running Quick sort" << endl;
-	shuffle(begin(startArr), end(startArr), default_random_engine{ random_device{}() });
-	startTime = high_resolution_clock::now();
-	sort(QuickSort, startArr);
-	const auto quickDuration = duration_cast<milliseconds>(high_resolution_clock::now() - startTime);
-	cout << "Bubble Sort: " << bubbleDuration.count() << " ms" << endl;
-	cout << "Insertion Sort: " << insertDuration.count() << u8" μs" << endl;
-	cout << "Selection Sort: " << selectionDuration.count() << " ms" << endl;
-	cout << "Merge Sort: " << mergeDuration.count() << " ms" << endl;
-	cout << "Quick Sort: " << quickDuration.count() << " ms" << endl;
+	auto selection100 = time(SelectionSort, 100);
+	auto selection1000 = time(SelectionSort, 1000);
+	auto selection10000 = time(SelectionSort, 10000);
+
+	auto merge100 = time(MergeSort, 100);
+	auto merge1000 = time(MergeSort, 1000);
+	auto merge10000 = time(MergeSort, 10000);
+
+	auto quick100 = time(QuickSort, 100);
+	auto quick1000 = time(QuickSort, 1000);
+	auto quick10000 = time(QuickSort, 10000);
+
+	auto cocktail100 = time(CocktailSort, 100);
+	auto cocktail1000 = time(CocktailSort, 1000);
+	auto cocktail10000 = time(CocktailSort, 10000);
+
+	cout << endl;
+	cout << endl;
+	cout << endl;
+
+	formatTime("Bubble Sort 10000", bubble10000, true);
+	formatTime("Insertion Sort 10000", insertion10000, true);
+	formatTime("Selection Sort 10000", selection10000, true);
+	formatTime("Merge Sort 10000", merge10000, true);
+	formatTime("Quick Sort 10000", quick10000, true);
+	formatTime("Cocktail Sort 10000", cocktail10000, true);
+
+	printElement("Type", nameLen);
+	cout << " | ";
+	printElement("Min", minLen);
+	cout << "| ";
+	printElement("Max", maxLen);
+	cout << "| ";
+	printElement("Avg", avgLen);
+	cout << endl;
+
+	formatTime("Bubble Sort 100", bubble100);
+	formatTime("Bubble Sort 1000", bubble1000);
+	formatTime("Bubble Sort 10000", bubble10000);
+
+	formatTime("Insertion Sort 100", insertion100);
+	formatTime("Insertion Sort 1000", insertion1000);
+	formatTime("Insertion Sort 10000", insertion10000);
+
+	formatTime("Selection Sort 100", selection100);
+	formatTime("Selection Sort 1000", selection1000);
+	formatTime("Selection Sort 10000", selection10000);
+
+	formatTime("Merge Sort 100", merge100);
+	formatTime("Merge Sort 1000", merge1000);
+	formatTime("Merge Sort 10000", merge10000);
+
+	formatTime("Quick Sort 100", quick100);
+	formatTime("Quick Sort 1000", quick1000);
+	formatTime("Quick Sort 10000", quick10000);
+
+	formatTime("Cocktail Sort 100", cocktail100);
+	formatTime("Cocktail Sort 1000", cocktail1000);
+	formatTime("Cocktail Sort 10000", cocktail10000);
+
 	return 0;
 }
