@@ -53,7 +53,8 @@ enum SortType
 	MergeSort,
 	QuickSort,
 	CocktailSort,
-	HeapSort
+	HeapSort,
+	IntroSort
 };
 
 std::ostream& operator<<(std::ostream& out, const SortType value) {
@@ -67,10 +68,21 @@ std::ostream& operator<<(std::ostream& out, const SortType value) {
 				PROCESS_VAL(QuickSort)
 				PROCESS_VAL(CocktailSort)
 				PROCESS_VAL(HeapSort)
+				PROCESS_VAL(IntroSort)
 		}
 #undef PROCESS_VAL
 		return "";
 	}();
+}
+
+vector<int> merge(vector<int> a, vector<int> b)
+{
+	vector<int> ret = vector<int>();
+	for(auto i : a)
+		ret.push_back(i);
+	for(auto i : b)
+		ret.push_back(i);
+	return ret;
 }
 
 void print(const vector<int> arr, const int altColLen = -1, int start = 0, int len = -1)
@@ -352,6 +364,22 @@ vector<int> heap_sort(vector<int> arr)
 	return arr;
 }
 
+vector<int> intro_sort(vector<int> arr, int depth)
+{
+	if (arr.size() < 16)
+	{
+		return insertion_sort(arr);
+	}
+	if (depth == 0)
+	{
+		return heap_sort(arr);
+	}
+	const int p = partition(arr, 0, arr.size() - 1);
+	auto lower = intro_sort(vector<int>(arr.begin(), arr.begin() + p), depth--);
+	auto upper = intro_sort(vector<int>(arr.begin() + p, arr.end()), depth);
+	return merge(lower, upper);
+}
+
 vector<int> sort(const SortType type, vector<int> arr)
 {
 	switch (type)
@@ -370,6 +398,8 @@ vector<int> sort(const SortType type, vector<int> arr)
 		return cocktail_sort(arr);
 	case HeapSort:
 		return heap_sort(arr);
+	case IntroSort:
+		return intro_sort(arr, 2 * static_cast<int>(log(arr.size())));
 	default:
 		break;
 	}
@@ -479,10 +509,12 @@ int main()
 	auto merge100 = time(MergeSort, 100);
 	auto merge1000 = time(MergeSort, 1000);
 	auto merge10000 = time(MergeSort, 10000);
+	auto merge100000 = time(MergeSort, 100000);
 
 	auto quick100 = time(QuickSort, 100);
 	auto quick1000 = time(QuickSort, 1000);
 	auto quick10000 = time(QuickSort, 10000);
+	auto quick100000 = time(QuickSort, 100000);
 
 	auto cocktail100 = time(CocktailSort, 100);
 	auto cocktail1000 = time(CocktailSort, 1000);
@@ -491,6 +523,12 @@ int main()
 	auto heap100 = time(HeapSort, 100);
 	auto heap1000 = time(HeapSort, 1000);
 	auto heap10000 = time(HeapSort, 10000);
+	auto heap100000 = time(HeapSort, 100000);
+	
+	auto intro100 = time(IntroSort, 100);
+	auto intro1000 = time(IntroSort, 1000);
+	auto intro10000 = time(IntroSort, 10000);
+	auto intro100000 = time(IntroSort, 100000);
 
 	cout << endl;
 	cout << endl;
@@ -499,10 +537,11 @@ int main()
 	formatTime("Bubble Sort 10000", bubble10000, true);
 	formatTime("Insertion Sort 10000", insertion10000, true);
 	formatTime("Selection Sort 10000", selection10000, true);
-	formatTime("Merge Sort 10000", merge10000, true);
-	formatTime("Quick Sort 10000", quick10000, true);
+	formatTime("Merge Sort 100000", merge100000, true);
+	formatTime("Quick Sort 100000", quick100000, true);
 	formatTime("Cocktail Sort 10000", cocktail10000, true);
-	formatTime("Heap Sort 10000", heap10000, true);
+	formatTime("Heap Sort 100000", heap100000, true);
+	formatTime("Intro Sort 100000", intro100000, true);
 
 	printElement("Type", nameLen);
 	cout << " | ";
@@ -528,10 +567,12 @@ int main()
 	formatTime("Merge Sort 100", merge100);
 	formatTime("Merge Sort 1000", merge1000);
 	formatTime("Merge Sort 10000", merge10000);
+	formatTime("Merge Sort 100000", merge100000);
 
 	formatTime("Quick Sort 100", quick100);
 	formatTime("Quick Sort 1000", quick1000);
 	formatTime("Quick Sort 10000", quick10000);
+	formatTime("Quick Sort 100000", quick100000);
 
 	formatTime("Cocktail Sort 100", cocktail100);
 	formatTime("Cocktail Sort 1000", cocktail1000);
@@ -540,6 +581,12 @@ int main()
 	formatTime("Heap Sort 100", heap100);
 	formatTime("Heap Sort 1000", heap1000);
 	formatTime("Heap Sort 10000", heap10000);
+	formatTime("Heap Sort 100000", heap100000);
+
+	formatTime("Intro Sort 100", intro100);
+	formatTime("Intro Sort 1000", intro1000);
+	formatTime("Intro Sort 10000", intro10000);
+	formatTime("Intro Sort 100000", intro100000);
 
 	return 0;
 }
