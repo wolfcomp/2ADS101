@@ -1,4 +1,5 @@
 ﻿#include <algorithm>
+#include <array>
 #include <chrono>
 #include <iostream>
 #include <ostream>
@@ -54,7 +55,8 @@ enum SortType
 	QuickSort,
 	CocktailSort,
 	HeapSort,
-	IntroSort
+	IntroSort,
+	RadixSort
 };
 
 std::ostream& operator<<(std::ostream& out, const SortType value) {
@@ -69,6 +71,7 @@ std::ostream& operator<<(std::ostream& out, const SortType value) {
 				PROCESS_VAL(CocktailSort)
 				PROCESS_VAL(HeapSort)
 				PROCESS_VAL(IntroSort)
+				PROCESS_VAL(RadixSort)
 		}
 #undef PROCESS_VAL
 		return "";
@@ -78,9 +81,9 @@ std::ostream& operator<<(std::ostream& out, const SortType value) {
 vector<int> merge(vector<int> a, vector<int> b)
 {
 	vector<int> ret = vector<int>();
-	for(auto i : a)
+	for (auto i : a)
 		ret.push_back(i);
-	for(auto i : b)
+	for (auto i : b)
 		ret.push_back(i);
 	return ret;
 }
@@ -380,6 +383,30 @@ vector<int> intro_sort(vector<int> arr, int depth)
 	return merge(lower, upper);
 }
 
+vector<int> radix_sort(vector<int> arr)
+{
+	int max = *max_element(arr.begin(), arr.end());
+	int exp = 1;
+	vector<int> output(arr.size());
+	while (max / exp > 0)
+	{
+		vector<int> count(10);
+		for (int i : arr)
+			count[(i / exp) % 10]++;
+		for (int i = 1; i < 10; ++i)
+			count[i] += count[i - 1];
+		for (int i = arr.size() - 1; i >= 0; --i)
+		{
+			output[count[(arr[i] / exp) % 10] - 1] = arr[i];
+			count[(arr[i] / exp) % 10]--;
+		}
+		for (int i = 0; i < arr.size(); ++i)
+			arr[i] = output[i];
+		exp *= 10;
+	}
+	return output;
+}
+
 vector<int> sort(const SortType type, vector<int> arr)
 {
 	switch (type)
@@ -400,6 +427,8 @@ vector<int> sort(const SortType type, vector<int> arr)
 		return heap_sort(arr);
 	case IntroSort:
 		return intro_sort(arr, 2 * static_cast<int>(log(arr.size())));
+	case RadixSort:
+		return radix_sort(arr);
 	default:
 		break;
 	}
@@ -493,100 +522,115 @@ int main()
 	SetConsoleOutputCP(CP_UTF8);
 	setvbuf(stdout, nullptr, _IOFBF, 1000);
 	cout.imbue(locale(""));
-
-	auto bubble100 = time(BubbleSort, 100);
-	auto bubble1000 = time(BubbleSort, 1000);
-	auto bubble10000 = time(BubbleSort, 10000);
-
-	auto insertion100 = time(InsertionSort, 100);
-	auto insertion1000 = time(InsertionSort, 1000);
-	auto insertion10000 = time(InsertionSort, 10000);
-
-	auto selection100 = time(SelectionSort, 100);
-	auto selection1000 = time(SelectionSort, 1000);
-	auto selection10000 = time(SelectionSort, 10000);
-
-	auto merge100 = time(MergeSort, 100);
-	auto merge1000 = time(MergeSort, 1000);
-	auto merge10000 = time(MergeSort, 10000);
-	auto merge100000 = time(MergeSort, 100000);
-
-	auto quick100 = time(QuickSort, 100);
-	auto quick1000 = time(QuickSort, 1000);
-	auto quick10000 = time(QuickSort, 10000);
-	auto quick100000 = time(QuickSort, 100000);
-
-	auto cocktail100 = time(CocktailSort, 100);
-	auto cocktail1000 = time(CocktailSort, 1000);
-	auto cocktail10000 = time(CocktailSort, 10000);
-
-	auto heap100 = time(HeapSort, 100);
-	auto heap1000 = time(HeapSort, 1000);
-	auto heap10000 = time(HeapSort, 10000);
-	auto heap100000 = time(HeapSort, 100000);
 	
-	auto intro100 = time(IntroSort, 100);
-	auto intro1000 = time(IntroSort, 1000);
-	auto intro10000 = time(IntroSort, 10000);
-	auto intro100000 = time(IntroSort, 100000);
-
-	cout << endl;
-	cout << endl;
-	cout << endl;
-
-	formatTime("Bubble Sort 10000", bubble10000, true);
-	formatTime("Insertion Sort 10000", insertion10000, true);
-	formatTime("Selection Sort 10000", selection10000, true);
-	formatTime("Merge Sort 100000", merge100000, true);
-	formatTime("Quick Sort 100000", quick100000, true);
-	formatTime("Cocktail Sort 10000", cocktail10000, true);
-	formatTime("Heap Sort 100000", heap100000, true);
-	formatTime("Intro Sort 100000", intro100000, true);
-
-	printElement("Type", nameLen);
-	cout << " | ";
-	printElement("Min", minLen);
-	cout << "| ";
-	printElement("Max", maxLen);
-	cout << "| ";
-	printElement("Avg", avgLen);
-	cout << endl;
-
-	formatTime("Bubble Sort 100", bubble100);
-	formatTime("Bubble Sort 1000", bubble1000);
-	formatTime("Bubble Sort 10000", bubble10000);
-
-	formatTime("Insertion Sort 100", insertion100);
-	formatTime("Insertion Sort 1000", insertion1000);
-	formatTime("Insertion Sort 10000", insertion10000);
-
-	formatTime("Selection Sort 100", selection100);
-	formatTime("Selection Sort 1000", selection1000);
-	formatTime("Selection Sort 10000", selection10000);
-
-	formatTime("Merge Sort 100", merge100);
-	formatTime("Merge Sort 1000", merge1000);
-	formatTime("Merge Sort 10000", merge10000);
-	formatTime("Merge Sort 100000", merge100000);
-
-	formatTime("Quick Sort 100", quick100);
-	formatTime("Quick Sort 1000", quick1000);
-	formatTime("Quick Sort 10000", quick10000);
-	formatTime("Quick Sort 100000", quick100000);
-
-	formatTime("Cocktail Sort 100", cocktail100);
-	formatTime("Cocktail Sort 1000", cocktail1000);
-	formatTime("Cocktail Sort 10000", cocktail10000);
-
-	formatTime("Heap Sort 100", heap100);
-	formatTime("Heap Sort 1000", heap1000);
-	formatTime("Heap Sort 10000", heap10000);
-	formatTime("Heap Sort 100000", heap100000);
-
-	formatTime("Intro Sort 100", intro100);
-	formatTime("Intro Sort 1000", intro1000);
-	formatTime("Intro Sort 10000", intro10000);
-	formatTime("Intro Sort 100000", intro100000);
+	 auto bubble100 = time(BubbleSort, 100);
+	 auto bubble1000 = time(BubbleSort, 1000);
+	 auto bubble10000 = time(BubbleSort, 10000);
+	
+	 auto insertion100 = time(InsertionSort, 100);
+	 auto insertion1000 = time(InsertionSort, 1000);
+	 auto insertion10000 = time(InsertionSort, 10000);
+	
+	 auto selection100 = time(SelectionSort, 100);
+	 auto selection1000 = time(SelectionSort, 1000);
+	 auto selection10000 = time(SelectionSort, 10000);
+	
+	 auto merge100 = time(MergeSort, 100);
+	 auto merge1000 = time(MergeSort, 1000);
+	 auto merge10000 = time(MergeSort, 10000);
+	 auto merge100000 = time(MergeSort, 100000);
+	
+	 auto quick100 = time(QuickSort, 100);
+	 auto quick1000 = time(QuickSort, 1000);
+	 auto quick10000 = time(QuickSort, 10000);
+	 auto quick100000 = time(QuickSort, 100000);
+	
+	 auto cocktail100 = time(CocktailSort, 100);
+	 auto cocktail1000 = time(CocktailSort, 1000);
+	 auto cocktail10000 = time(CocktailSort, 10000);
+	
+	 auto heap100 = time(HeapSort, 100);
+	 auto heap1000 = time(HeapSort, 1000);
+	 auto heap10000 = time(HeapSort, 10000);
+	 auto heap100000 = time(HeapSort, 100000);
+	
+	 auto intro100 = time(IntroSort, 100);
+	 auto intro1000 = time(IntroSort, 1000);
+	 auto intro10000 = time(IntroSort, 10000);
+	 auto intro100000 = time(IntroSort, 100000);
+	
+	 auto radix100 = time(RadixSort, 100);
+	 auto radix1000 = time(RadixSort, 1000);
+	 auto radix10000 = time(RadixSort, 10000);
+	 auto radix100000 = time(RadixSort, 100000);
+	 auto radix1000000 = time(RadixSort, 1000000);
+	 auto radix10000000 = time(RadixSort, 10000000);
+	
+	 cout << endl;
+	 cout << endl;
+	 cout << endl;
+	
+	 formatTime("Bubble Sort 10000", bubble10000, true);
+	 formatTime("Insertion Sort 10000", insertion10000, true);
+	 formatTime("Selection Sort 10000", selection10000, true);
+	 formatTime("Merge Sort 100000", merge100000, true);
+	 formatTime("Quick Sort 100000", quick100000, true);
+	 formatTime("Cocktail Sort 10000", cocktail10000, true);
+	 formatTime("Heap Sort 100000", heap100000, true);
+	 formatTime("Intro Sort 100000", intro100000, true);
+	 formatTime("Radix Sort 10000000", radix10000000, true);
+	
+	 printElement("Type", nameLen);
+	 cout << " | ";
+	 printElement("Min", minLen);
+	 cout << "| ";
+	 printElement("Max", maxLen);
+	 cout << "| ";
+	 printElement("Avg", avgLen);
+	 cout << endl;
+	
+	 formatTime("Bubble Sort 100", bubble100);
+	 formatTime("Bubble Sort 1000", bubble1000);
+	 formatTime("Bubble Sort 10000", bubble10000);
+	
+	 formatTime("Insertion Sort 100", insertion100);
+	 formatTime("Insertion Sort 1000", insertion1000);
+	 formatTime("Insertion Sort 10000", insertion10000);
+	
+	 formatTime("Selection Sort 100", selection100);
+	 formatTime("Selection Sort 1000", selection1000);
+	 formatTime("Selection Sort 10000", selection10000);
+	
+	 formatTime("Merge Sort 100", merge100);
+	 formatTime("Merge Sort 1000", merge1000);
+	 formatTime("Merge Sort 10000", merge10000);
+	 formatTime("Merge Sort 100000", merge100000);
+	
+	 formatTime("Quick Sort 100", quick100);
+	 formatTime("Quick Sort 1000", quick1000);
+	 formatTime("Quick Sort 10000", quick10000);
+	 formatTime("Quick Sort 100000", quick100000);
+	
+	 formatTime("Cocktail Sort 100", cocktail100);
+	 formatTime("Cocktail Sort 1000", cocktail1000);
+	 formatTime("Cocktail Sort 10000", cocktail10000);
+	
+	 formatTime("Heap Sort 100", heap100);
+	 formatTime("Heap Sort 1000", heap1000);
+	 formatTime("Heap Sort 10000", heap10000);
+	 formatTime("Heap Sort 100000", heap100000);
+	
+	 formatTime("Intro Sort 100", intro100);
+	 formatTime("Intro Sort 1000", intro1000);
+	 formatTime("Intro Sort 10000", intro10000);
+	 formatTime("Intro Sort 100000", intro100000);
+	
+	 formatTime("Radix Sort 100", radix100);
+	 formatTime("Radix Sort 1000", radix1000);
+	 formatTime("Radix Sort 10000", radix10000);
+	 formatTime("Radix Sort 100000", radix100000);
+	 formatTime("Radix Sort 1000000", radix1000000);
+	 formatTime("Radix Sort 10000000", radix10000000);
 
 	return 0;
 }
