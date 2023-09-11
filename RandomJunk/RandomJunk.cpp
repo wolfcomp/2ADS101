@@ -16,15 +16,7 @@ using namespace std::chrono;
 bool debug = false;
 char separator = ' ';
 
-template<typename T> void printElement(T t, const int& width, bool rightAlign = false)
-{
-    if (rightAlign)
-        cout << right << setw(width) << setfill(separator) << t;
-    else
-        cout << left << setw(width) << setfill(separator) << t;
-}
-
-namespace Color {
+namespace console {
     class ModifierException final : public std::exception
     {
         const char* what() const noexcept override
@@ -114,6 +106,14 @@ namespace Color {
     };
 }
 
+template<typename T> void printElement(T t, const int& width, bool rightAlign = false, console::Modifier modifier = console::Modifier(console::FG_DEFAULT))
+{
+    if (rightAlign)
+        cout << modifier << right << setw(width) << setfill(separator) << t << console::Modifier(console::FG_DEFAULT) << console::Modifier(console::BG_DEFAULT);
+    else
+        cout << modifier << left << setw(width) << setfill(separator) << t << console::Modifier(console::FG_DEFAULT) << console::Modifier(console::BG_DEFAULT);
+}
+
 enum SortType
 {
     BubbleSort,
@@ -164,8 +164,8 @@ void print(const vector<int> arr, const int altColLen = -1, int start = 0, int l
         len -= start;
     }
 
-    const Color::Modifier red(Color::FG_RED);
-    const Color::Modifier def(Color::FG_DEFAULT);
+    const console::Modifier red(console::FG_RED);
+    const console::Modifier def(console::FG_DEFAULT);
 
     bool altCol = false;
 
@@ -517,7 +517,7 @@ vector<double> time(const SortType type, int size, int times = 10)
     shuffle(begin(arr), end(arr), rnd);
     for (int i = 0; i < times; i++)
     {
-        cout << "Running " << type << " of size " << Color::Modifier(Color::FG_GREEN) << size << Color::Modifier(Color::FG_DEFAULT) << " , " << Color::Modifier(Color::FG_GREEN) << i + 1 << Color::Modifier(Color::FG_DEFAULT) << " out of " << Color::Modifier(Color::FG_BRIGHT_BLUE) << times << Color::Modifier(Color::FG_DEFAULT) << " times" << endl;
+        cout << "Running " << type << " of size " << console::Modifier(console::FG_GREEN) << size << console::Modifier(console::FG_DEFAULT) << " , " << console::Modifier(console::FG_GREEN) << i + 1 << console::Modifier(console::FG_DEFAULT) << " out of " << console::Modifier(console::FG_BRIGHT_BLUE) << times << console::Modifier(console::FG_DEFAULT) << " times" << endl;
         auto startTime = high_resolution_clock::now();
         sorted = sort(type, arr);
         const double duration = static_cast<double>(duration_cast<microseconds>(high_resolution_clock::now() - startTime).count());
@@ -529,7 +529,7 @@ vector<double> time(const SortType type, int size, int times = 10)
         if (i != times - 1)
             shuffle(begin(arr), end(arr), rnd);
     }
-    if(debug)
+    if (debug)
         print(sorted);
     result[1] /= times;
     return result;
@@ -552,29 +552,45 @@ string format_number(long long num)
     return result;
 }
 
+string formatTime(double time, string add = "")
+{
+    if (!add.empty())
+        add = "." + add;
+    if (time < 1000)
+        return format_number(static_cast<long long>(time)) + add + u8"µs";
+    if (time < 1000000)
+        return format_number(static_cast<long long>(time / 1000)) + add + u8"ms";
+    return format_number(static_cast<long long>(time / 1000000)) + add + u8"s";
+}
+
+string formatDouble(double num)
+{
+    if (num < 1000)
+        return to_string(num - static_cast<long long>(num));
+    if (num < 1000000)
+        return to_string(num / 1000 - static_cast<long long>(num / 1000));
+    return to_string(num / 1000000 - static_cast<long long>(num / 1000000));
+}
+
 void formatTime(string name, vector<double> time, bool dry = false)
 {
     const auto avg = time[1];
-    const auto avgDec = avg - static_cast<long long>(avg);
-    auto avgDecStr = to_string(avgDec);
+    auto avgDecStr = formatDouble(avg);
     avgDecStr = avgDecStr.substr(avgDecStr.find('.') + 1, 3);
     avgDecStr = avgDecStr.substr(0, avgDecStr.find_last_not_of('0') + 1);
 
-    auto minStr = format_number(static_cast<long long>(time[0])) + u8"µs";
-    auto maxStr = format_number(static_cast<long long>(time[2])) + u8"µs";
-    auto avgStr = format_number(static_cast<long long>(avg));
-    if (!avgDecStr.empty())
-        avgStr += "." + avgDecStr;
-    avgStr += u8"µs";
+    const auto minStr = formatTime(time[0]);
+    const auto maxStr = formatTime(static_cast<long long>(time[2]));
+    const auto avgStr = formatTime(static_cast<long long>(avg), avgDecStr);
     if (!dry)
     {
         printElement(name, nameLen);
         cout << " | ";
-        printElement(minStr, minLen, true);
+        printElement(minStr, minLen, true, console::Modifier(console::FG_BRIGHT_CYAN));
         cout << " | ";
-        printElement(maxStr, maxLen, true);
+        printElement(maxStr, maxLen, true, console::Modifier(console::FG_BRIGHT_ORANGE));
         cout << " | ";
-        printElement(avgStr, avgLen, true);
+        printElement(avgStr, avgLen, true, console::Modifier(console::FG_BRIGHT_MAGENTA));
         cout << endl;
     }
     else
@@ -660,46 +676,46 @@ int main()
 
     formatTime("Bubble Sort 100", bubble100);
     formatTime("Bubble Sort 1000", bubble1000);
-    formatTime("Bubble Sort 10000", bubble10000);
+    // formatTime("Bubble Sort 10000", bubble10000);
 
     formatTime("Insertion Sort 100", insertion100);
     formatTime("Insertion Sort 1000", insertion1000);
-    formatTime("Insertion Sort 10000", insertion10000);
+    // formatTime("Insertion Sort 10000", insertion10000);
 
     formatTime("Selection Sort 100", selection100);
     formatTime("Selection Sort 1000", selection1000);
-    formatTime("Selection Sort 10000", selection10000);
+    // formatTime("Selection Sort 10000", selection10000);
 
     formatTime("Merge Sort 100", merge100);
     formatTime("Merge Sort 1000", merge1000);
     formatTime("Merge Sort 10000", merge10000);
-    formatTime("Merge Sort 100000", merge100000);
+    // formatTime("Merge Sort 100000", merge100000);
 
     formatTime("Quick Sort 100", quick100);
     formatTime("Quick Sort 1000", quick1000);
     formatTime("Quick Sort 10000", quick10000);
-    formatTime("Quick Sort 100000", quick100000);
+    // formatTime("Quick Sort 100000", quick100000);
 
     formatTime("Cocktail Sort 100", cocktail100);
     formatTime("Cocktail Sort 1000", cocktail1000);
-    formatTime("Cocktail Sort 10000", cocktail10000);
+    // formatTime("Cocktail Sort 10000", cocktail10000);
 
     formatTime("Heap Sort 100", heap100);
     formatTime("Heap Sort 1000", heap1000);
     formatTime("Heap Sort 10000", heap10000);
-    formatTime("Heap Sort 100000", heap100000);
+    // formatTime("Heap Sort 100000", heap100000);
 
     formatTime("Intro Sort 100", intro100);
     formatTime("Intro Sort 1000", intro1000);
     formatTime("Intro Sort 10000", intro10000);
-    formatTime("Intro Sort 100000", intro100000);
+    // formatTime("Intro Sort 100000", intro100000);
 
     formatTime("Radix Sort 100", radix100);
     formatTime("Radix Sort 1000", radix1000);
     formatTime("Radix Sort 10000", radix10000);
     formatTime("Radix Sort 100000", radix100000);
     formatTime("Radix Sort 1000000", radix1000000);
-    formatTime("Radix Sort 10000000", radix10000000);
+    // formatTime("Radix Sort 10000000", radix10000000);
 
     return 0;
 }
