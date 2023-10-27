@@ -13,7 +13,7 @@ public:
      * \brief Constructor for Node with value
      * \param value Value of the Node
      */
-    Node(T value);
+    explicit Node(T value);
     /**
      * \brief Destructor for Node
      */

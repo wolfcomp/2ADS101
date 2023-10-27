@@ -12,7 +12,7 @@ const char8_t* corner = u8"└─";
 const char8_t* tee = u8"├─";
 
 template <class T>
-void print_tree(Node<T> tree, const int i)
+void print_tree(Node<T> tree, const int i, const bool end = false)
 {
     std::cout << tree.get_value() << std::endl;
     auto children = tree.get_children();
@@ -29,10 +29,10 @@ void print_tree(Node<T> tree, const int i)
     {
         for (auto k = 0; k < i; k++)
         {
-            std::cout << reinterpret_cast<const char*>(line);
+            std::cout << (end ? "  " : reinterpret_cast<const char*>(line));
         }
         std::cout << (last != *it ? reinterpret_cast<const char*>(tee) : reinterpret_cast<const char*>(corner));
-        print_tree(**it, i + 1);
+        print_tree(**it, i + 1, last == *it);
     }
 }
 
@@ -45,7 +45,7 @@ std::vector<std::vector<T>> print_graph(Graph<T>& graph)
     {
         auto vertex = *it;
         auto edges = vertex->get_edges();
-        for (auto k = 0; k < edges.size(); k++)
+        for (auto k = 0; k < edges.size(); k++)  // NOLINT(clang-diagnostic-sign-compare)
         {
             auto edge = edges[k];
             output.push_back({ edge->get_from()->get_value(), edge->get_to()->get_value() });
@@ -80,8 +80,7 @@ std::vector<T> fastest_path(Node<T> tree, const T value, std::vector<T>& traced)
             continue;
         }
         traced.push_back(child->get_value());
-        auto path = fastest_path(*child, value, traced);
-        if (!path.empty() && std::find(path.begin(), path.end(), value) != path.end())
+        if (auto path = fastest_path(*child, value, traced); !path.empty() && std::find(path.begin(), path.end(), value) != path.end())
         {
             output.push_back(tree.get_value());
             output.insert(output.end(), path.begin(), path.end());
@@ -93,8 +92,7 @@ std::vector<T> fastest_path(Node<T> tree, const T value, std::vector<T>& traced)
         if (tree.get_parent() != nullptr && std::find(traced.begin(), traced.end(), tree.get_value()) == traced.end())
         {
             traced.push_back(tree.get_value());
-            auto path = fastest_path(*tree.get_parent(), value, traced);
-            if (!path.empty())
+            if (auto path = fastest_path(*tree.get_parent(), value, traced); !path.empty())
             {
                 output.push_back(tree.get_value());
                 output.insert(output.end(), path.begin(), path.end());
@@ -113,8 +111,8 @@ std::vector<T> fastest_path(Node<T> tree, const T value, std::vector<T>& traced)
  * \param f The function to compare the paths with. Returns bool with input of <see cref="std::vector<Vertex<T>*>"/> and <see cref="std::vector<Vertex<T>*>"/>.
  * \return
  */
-template <class T, typename _Func>
-std::vector<Vertex<T>*> fastest_path(Vertex<T>* graph, const T value, std::vector<Vertex<T>*> visited, _Func f)
+template <class T, typename Func>
+std::vector<Vertex<T>*> fastest_path(Vertex<T>* graph, const T value, std::vector<Vertex<T>*> visited, Func f)
 {
     auto paths = std::vector<std::vector<Vertex<T>*>>();
     auto edges = graph->get_edges();
@@ -131,8 +129,7 @@ std::vector<Vertex<T>*> fastest_path(Vertex<T>* graph, const T value, std::vecto
         {
             break;
         }
-        auto path = fastest_path(vertex, value, visited, f);
-        if (!path.empty())
+        if (auto path = fastest_path(vertex, value, visited, f); !path.empty())
         {
             paths.push_back(path);
         }
@@ -158,6 +155,7 @@ int main()
     std::cout.imbue(std::locale(""));
 
 #pragma region Tree
+    // Create a tree with 12 random inserted nodes.
     auto tree = Node(0);
     tree.add_child(new Node(1));
     tree.add_child(new Node(2));
@@ -172,14 +170,18 @@ int main()
     tree[1]->add_child(new Node(9));
     tree[2]->add_child(new Node(10));
     tree[2]->operator[](0)->add_child(new Node(11));
+
+    // Print the tree to console.
     print_tree(tree, 0);
 
     std::cout << std::endl;
     std::cout << std::endl;
 
+    // Find the shortest path between two nodes.
     auto traced = std::vector<int>();
     const auto path = fastest_path(*tree[2]->operator[](0), 7, traced);
 
+    // Print the path to console.
     for (auto i = 0; i < path.size(); i++)
     {
         std::cout << path[i] << (i != path.size() - 1 ? " -> " : "");
@@ -188,8 +190,10 @@ int main()
     std::cout << std::endl;
     std::cout << std::endl;
 
+    // Remove a node from the tree.
     child->get_parent()->remove_child(child);
 
+    // Print the new tree to console.
     print_tree(tree, 0);
 
     std::cout << std::endl;
@@ -197,6 +201,7 @@ int main()
 #pragma endregion functions
 
 #pragma region Graph
+    // Create a graph with 7 vertexes and 8 random edges.
     auto graph = Graph<int>();
     auto vertex0 = new Vertex(0);
     auto vertex1 = new Vertex(1);
@@ -221,13 +226,14 @@ int main()
     graph.add_vertex(vertex5);
     graph.add_vertex(vertex6);
 
+    // Print the graph adjacency list to console.
     const auto list = print_graph(graph);
 
     std::cout << "[" << std::endl;
 
-    for (auto it = list.begin(); it != list.end(); ++it)
+    for (const auto& it : list)
     {
-        std::cout << "  [" << (*it)[0] << ", " << (*it)[1] << "]," << std::endl;
+        std::cout << "  [" << it[0] << ", " << it[1] << "]," << std::endl;
     }
 
 
@@ -236,16 +242,18 @@ int main()
     std::cout << std::endl;
     std::cout << std::endl;
 
+    // Find the shortest path between two vertexes.
     auto visited2 = std::vector<Vertex<int>*>();
     visited2.push_back(vertex1);
 
-    const auto path2 = fastest_path(vertex1, vertex4->get_value(), visited2, [](std::vector<Vertex<int>*> a, std::vector<Vertex<int>*> b) { return a.size() < b.size(); });
+    const auto path2 = fastest_path(vertex1, vertex4->get_value(), visited2, [](const std::vector<Vertex<int>*>& a, const std::vector<Vertex<int>*>& b) { return a.size() < b.size(); });
 
+    // Print the path to console.
     std::cout << "Path: " << vertex1->get_value() << " -> ";
 
-    for (auto i = 0; i < path2.size(); i++)
+    for (auto i = 0; i < path2.size(); i++)  // NOLINT(clang-diagnostic-sign-compare)
     {
-        std::cout << path2[i]->get_value() << (i != path2.size() - 1 ? " -> " : "");
+        std::cout << path2[i]->get_value() << (i != path2.size() - 1 ? " -> " : "");  // NOLINT(clang-diagnostic-sign-compare)
     }
 #pragma endregion functions
 
