@@ -1,10 +1,15 @@
 ﻿#include <algorithm>
+#include <functional>
 #include <iostream>
 #include <ostream>
 #include <Windows.h>
 
 #include "Graph.h"
 #include "Node.h"
+
+const char8_t* line = u8"│ ";
+const char8_t* corner = u8"└─";
+const char8_t* tee = u8"├─";
 
 template <class T>
 void print_tree(Node<T> tree, const int i)
@@ -24,9 +29,9 @@ void print_tree(Node<T> tree, const int i)
     {
         for (auto k = 0; k < i; k++)
         {
-            std::cout << u8"│ ";
+            std::cout << reinterpret_cast<const char*>(line);
         }
-        std::cout << (last != *it ? u8"├─" : u8"└─");
+        std::cout << (last != *it ? reinterpret_cast<const char*>(tee) : reinterpret_cast<const char*>(corner));
         print_tree(**it, i + 1);
     }
 }
@@ -49,6 +54,14 @@ std::vector<std::vector<T>> print_graph(Graph<T>& graph)
     return output;
 }
 
+/**
+ * \brief Finds the shortest path between two nodes in a tree.
+ * \tparam T The type of the value in the nodes.
+ * \param tree The tree to search with starting node.
+ * \param value The value of the node to search for.
+ * \param traced The nodes that have already been visited.
+ * \return
+ */
 template <class T>
 std::vector<T> fastest_path(Node<T> tree, const T value, std::vector<T>& traced)
 {
@@ -91,6 +104,53 @@ std::vector<T> fastest_path(Node<T> tree, const T value, std::vector<T>& traced)
     return output;
 }
 
+/**
+ * \brief Finds the shortest path between two vertexes in a graph.
+ * \tparam T The type of the value in the vertexes.
+ * \param graph The graph to search with starting vertex.
+ * \param value The value of the vertex to search for.
+ * \param visited The vertexes that have already been visited.
+ * \param f The function to compare the paths with. Returns bool with input of <see cref="std::vector<Vertex<T>*>"/> and <see cref="std::vector<Vertex<T>*>"/>.
+ * \return
+ */
+template <class T, typename _Func>
+std::vector<Vertex<T>*> fastest_path(Vertex<T>* graph, const T value, std::vector<Vertex<T>*> visited, _Func f)
+{
+    auto paths = std::vector<std::vector<Vertex<T>*>>();
+    auto edges = graph->get_edges();
+    Vertex<T>* vertex;
+    for (auto it = edges.begin(); it != edges.end(); ++it)
+    {
+        auto edge = *it;
+        vertex = edge->get_to();
+        if (std::find(visited.begin(), visited.end(), vertex) != visited.end())
+            continue;
+
+        visited.push_back(vertex);
+        if (vertex->get_value() == value)
+        {
+            break;
+        }
+        auto path = fastest_path(vertex, value, visited, f);
+        if (!path.empty())
+        {
+            paths.push_back(path);
+        }
+    }
+    auto shortest = std::vector<Vertex<T>*>();
+    for (auto it = paths.begin(); it != paths.end(); ++it)
+    {
+        auto path = *it;
+        if (shortest.empty() || f(path, shortest))
+        {
+            shortest = path;
+        }
+    }
+    if (std::find(shortest.begin(), shortest.end(), vertex) == shortest.end())
+        shortest.push_back(vertex);
+    return shortest;
+}
+
 int main()
 {
     SetConsoleOutputCP(CP_UTF8);
@@ -98,24 +158,32 @@ int main()
     std::cout.imbue(std::locale(""));
 
 #pragma region Tree
-    auto tree = Node<int>(0);
-    tree.add_child(new Node<int>(1));
-    tree.add_child(new Node<int>(2));
-    tree.add_child(new Node<int>(3));
+    auto tree = Node(0);
+    tree.add_child(new Node(1));
+    tree.add_child(new Node(2));
+    tree.add_child(new Node(3));
     auto child = tree[0];
-    child->add_child(new Node<int>(4));
-    child->add_child(new Node<int>(5));
+    child->add_child(new Node(4));
+    child->add_child(new Node(5));
     child = (*child)[0];
-    child->add_child(new Node<int>(6));
-    child->add_child(new Node<int>(7));
-    tree[1]->add_child(new Node<int>(8));
-    tree[1]->add_child(new Node<int>(9));
-    tree[2]->add_child(new Node<int>(10));
-    tree[2]->operator[](0)->add_child(new Node<int>(11));
+    child->add_child(new Node(6));
+    child->add_child(new Node(7));
+    tree[1]->add_child(new Node(8));
+    tree[1]->add_child(new Node(9));
+    tree[2]->add_child(new Node(10));
+    tree[2]->operator[](0)->add_child(new Node(11));
     print_tree(tree, 0);
 
+    std::cout << std::endl;
+    std::cout << std::endl;
+
     auto traced = std::vector<int>();
-    auto path = fastest_path(*tree[2]->operator[](0), 3, traced);
+    const auto path = fastest_path(*tree[2]->operator[](0), 7, traced);
+
+    for (auto i = 0; i < path.size(); i++)
+    {
+        std::cout << path[i] << (i != path.size() - 1 ? " -> " : "");
+    }
 
     std::cout << std::endl;
     std::cout << std::endl;
@@ -123,17 +191,20 @@ int main()
     child->get_parent()->remove_child(child);
 
     print_tree(tree, 0);
+
+    std::cout << std::endl;
+    std::cout << std::endl;
 #pragma endregion functions
 
 #pragma region Graph
     auto graph = Graph<int>();
-    auto vertex0 = new Vertex<int>(0);
-    auto vertex1 = new Vertex<int>(1);
-    auto vertex2 = new Vertex<int>(2);
-    auto vertex3 = new Vertex<int>(3);
-    auto vertex4 = new Vertex<int>(4);
-    auto vertex5 = new Vertex<int>(5);
-    auto vertex6 = new Vertex<int>(6);
+    auto vertex0 = new Vertex(0);
+    auto vertex1 = new Vertex(1);
+    auto vertex2 = new Vertex(2);
+    auto vertex3 = new Vertex(3);
+    auto vertex4 = new Vertex(4);
+    auto vertex5 = new Vertex(5);
+    auto vertex6 = new Vertex(6);
     vertex0->add_edge(vertex1);
     vertex0->add_edge(vertex2);
     vertex1->add_edge(vertex3);
@@ -162,7 +233,20 @@ int main()
 
     std::cout << "]";
 
-    graph.remove_all_vertices();
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+    auto visited2 = std::vector<Vertex<int>*>();
+    visited2.push_back(vertex1);
+
+    const auto path2 = fastest_path(vertex1, vertex4->get_value(), visited2, [](std::vector<Vertex<int>*> a, std::vector<Vertex<int>*> b) { return a.size() < b.size(); });
+
+    std::cout << "Path: " << vertex1->get_value() << " -> ";
+
+    for (auto i = 0; i < path2.size(); i++)
+    {
+        std::cout << path2[i]->get_value() << (i != path2.size() - 1 ? " -> " : "");
+    }
 #pragma endregion functions
 
     return 0;
