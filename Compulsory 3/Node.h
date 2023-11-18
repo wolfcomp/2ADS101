@@ -19,6 +19,28 @@ public:
      */
     ~Node();
     /**
+     * \brief Assignment operator for Node
+     * \param other Node to assign to
+     * \return Assigned Node
+     */
+    Node& operator=(const Node& other);
+    /**
+     * \brief Move assignment operator for Node
+     * \param other Node to assign to
+     */
+    Node(const Node& other);
+    /**
+     * \brief Move assignment operator for Node
+     * \param other Node to assign to
+     * \return Assigned Node
+     */
+    Node& operator=(Node&& other);
+    /**
+     * \brief Move assignment operator for Node
+     * \param other Node to assign to
+     */
+    Node(Node&& other);
+    /**
      * \brief Adds child to the Node
      * \param child Child to add to Node
      */
@@ -68,7 +90,7 @@ template <class T>
 Node<T>::Node()
 {
     this->parent = nullptr;
-    this->value = 0;
+    this->value = T();
     this->children = std::vector<Node*>();
 }
 
@@ -85,7 +107,41 @@ Node<T>::~Node()
 {
     this->children.clear();
     this->parent = nullptr;
-    this->value = 0;
+    this->value = T();
+}
+
+template <class T>
+Node<T>& Node<T>::operator=(const Node& other)
+{
+    this->parent = other.parent;
+    this->value = other.value;
+    this->children = other.children;
+    return *this;
+}
+
+template <class T>
+Node<T>::Node(const Node& other)
+{
+    this->parent = other.parent;
+    this->value = other.value;
+    this->children = other.children;
+}
+
+template <class T>
+Node<T>& Node<T>::operator=(Node&& other)
+{
+    this->parent = other.parent;
+    this->value = other.value;
+    this->children = other.children;
+    return *this;
+}
+
+template <class T>
+Node<T>::Node(Node&& other)
+{
+    this->parent = other.parent;
+    this->value = other.value;
+    this->children = other.children;
 }
 
 template <class T>

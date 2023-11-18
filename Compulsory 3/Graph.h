@@ -62,7 +62,7 @@ public:
      * \brief Adds an edge to the vertex.
      * \param to The vertex to connect to.
      */
-    void add_edge(Vertex* to);
+    void add_edge(Vertex* to, float distance);
 
     /**
      * \brief Removes an edge to the vertex.
@@ -120,7 +120,7 @@ public:
      * \param from The vertex to connect from.
      * \param to The vertex to connect to.
      */
-    Edge(Vertex<T>* from, Vertex<T>* to);
+    Edge(Vertex<T>* from, Vertex<T>* to, float distance);
 
     /**
      * \brief Destroys the edge.
@@ -341,10 +341,10 @@ Vertex<T>& Vertex<T>::operator=(Vertex&& other) noexcept
 }
 
 template <class T>
-void Vertex<T>::add_edge(Vertex* to)
+void Vertex<T>::add_edge(Vertex* to, float distance)
 {
-    auto edge = new Edge<T>(this, to);
-    auto edge2 = new Edge<T>(to, this);
+    auto edge = new Edge<T>(this, to, distance);
+    auto edge2 = new Edge<T>(to, this, distance);
     this->edges.push_back(edge);
     to->add_edge(edge2);
 }
@@ -421,11 +421,11 @@ Edge<T>::Edge()
 }
 
 template <class T>
-Edge<T>::Edge(Vertex<T>* from, Vertex<T>* to)
+Edge<T>::Edge(Vertex<T>* from, Vertex<T>* to, float distance)
 {
     this->from = from;
     this->to = to;
-    this->distance = 0;
+    this->distance = distance;
 }
 
 template <class T>
